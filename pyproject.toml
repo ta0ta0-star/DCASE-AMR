@@ -1,0 +1,35 @@
+[project]
+name = "dcase2026-task6-baseline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch==2.1.0",
+    "torchvision==0.16.0",
+    "torchaudio==2.1.0",
+    "easydict>=1.13",
+    "numpy<2.0",
+    "packaging>=26.0",
+    "pandas>=2.3.3",
+    "pyyaml>=6.0.3",
+    "scikit-learn>=1.6.1",
+    "tqdm>=4.67.3",
+    "huggingface-hub>=0.20.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "slack-notice",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu118" }]
+torchvision = [{ index = "pytorch-cu118" }]
+torchaudio = [{ index = "pytorch-cu118" }]
+slack-notice = { git = "https://github.com/fermenter4950/slack_notify.git" }
