@@ -57,9 +57,10 @@ def train_epoch(
 
     num_training_examples = len(train_loader)
     timer_dataloading = time.time()
-    for batch_idx, batch in tqdm(enumerate(train_loader),
-                                 desc="Training Iteration",
-                                 total=num_training_examples):
+    # for batch_idx, batch in tqdm(enumerate(train_loader),
+    #                              desc="Training Iteration",
+    #                              total=num_training_examples):
+    for batch_idx, batch in enumerate(train_loader):
         model_inputs, targets = prepare_batch_inputs(batch[1], opt.device)
 
         outputs = model(**model_inputs, targets=targets) if opt.model_name == 'cg_detr' else model(**model_inputs)
