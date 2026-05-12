@@ -58,8 +58,8 @@ max_a_l: 300
 
 # feature-specific config
 ctx_mode: audio_tef
-a_feat_dir: /content/DCASE-AMR/data/dcase2026_task6/features/castella/clap
-t_feat_dir: /content/DCASE-AMR/data/dcase2026_task6/features/castella/clap_text
+a_feat_dir: /content/DCASE-AMR/features/castella/clap
+t_feat_dir: /content/DCASE-AMR/features/castella/clap_text
 a_sub_feat_dir: private/feature/clap
 t_sub_feat_dir: private/feature/clap_text
 a_feat_type: clap
