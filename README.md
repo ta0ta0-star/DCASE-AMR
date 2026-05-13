@@ -13,7 +13,12 @@ Finally, the model outputs multiple candidate moments with start/end timestamps 
 git clone https://github.com/awkrail/dcase2026_task6_baseline.git
 ```
 1. Install Pytorch & dependency libraries
-Install pytorch, torchvision, and torchaudio based on your GPU environments. Note that the inference API is available for CPU environments. We tested the codes on Python 3.9 and CUDA 11.8:
+We recommend using [uv](https://github.com/astral-sh/uv) for environment management. This will install PyTorch and all dependencies based on `pyproject.toml` (tested on Python 3.9 and CUDA 11.8):
+```
+uv sync
+```
+
+Alternatively, you can use pip:
 ```
 pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
@@ -41,31 +46,31 @@ These feature files are also available in HuggingFace.
 ## Training and evaluation
 0. Train a model
 ```
-python src/train.py --config config.yml  
+uv run python src/train.py --config config.yml  
 ```
-- `config.yml` is for CASTELLA. If you train models on Clotho-Moment, use `config-pretraining.yml`
+- `config.yml` is for CASTELLA. If you train models on Clotho-Moment, use `config_pretraining.yml`
 - If you use pre-trained model weights, use `--resume ./**/{checkpoint}.pth`
 
 
 1. Evaluation
 Reproduce the evaluation on the `val` set.
 ```
-python src/evaluate.py --config config.yml --model_path results/best_checkpoint.pth
+uv run python src/evaluate.py --config config.yml --model_path results/best_checkpoint.pth
 ```
 The result is:
 ```
-2026-03-30 01:14:08.441:INFO:__main__ - Setup config, data and model...
-2026-03-30 01:14:08.442:INFO:__main__ - setup model/optimizer/scheduler
-2026-03-30 01:14:08.885:INFO:__main__ - CUDA enabled.
-2026-03-30 01:14:09.264:INFO:__main__ - Model checkpoint: results/best_checkpoint.pth
-2026-03-30 01:14:09.264:INFO:__main__ - Starting inference...
-2026-03-30 01:14:09.264:INFO:__main__ - Generate submissions
-compute st ed scores: 100%|███████████████████████████████████████████████████| 4/4 [00:01<00:00,  2.93it/s]
-convert to multiples of clip_length=1: 100%|███████████████████████████| 352/352 [00:00<00:00, 28908.68it/s]
-2026-03-30 01:14:10.652:INFO:__main__ - Saving/Evaluating before nms results
+2026-05-13 18:00:28.247:INFO:__main__ - Setup config, data and model...
+2026-05-13 18:00:28.249:INFO:__main__ - setup model/optimizer/scheduler
+2026-05-13 18:00:28.721:INFO:__main__ - CUDA enabled.
+2026-05-13 18:00:29.482:INFO:__main__ - Model checkpoint: results/best_checkpoint.pth
+2026-05-13 18:00:29.482:INFO:__main__ - Starting inference...
+2026-05-13 18:00:29.482:INFO:__main__ - Generate submissions
+compute st ed scores: 100%|███████████████████████████| 4/4 [00:01<00:00,  2.29it/s]
+convert to multiples of clip_length=1: 100%|█| 352/352 [00:00<00:00, 20001.83it/s]
+2026-05-13 18:00:31.254:INFO:__main__ - Saving/Evaluating before nms results
 full: [0, 1500], 352/352=100.00 examples.
-[eval_moment_retrieval] [full] 0.12 seconds
-2026-03-30 01:14:10.795:INFO:__main__ - metrics_no_nms OrderedDict([   ('MR-full-R1@0.5', 27.56),
+[eval_moment_retrieval] [full] 0.14 seconds
+2026-05-13 18:00:31.402:INFO:__main__ - metrics_no_nms OrderedDict([   ('MR-full-R1@0.5', 27.56),
                 ('MR-full-R1@0.7', 16.19),
                 ('MR-full-mAP', 11.44),
                 ('MR-full-mAP@0.5', 24.02),
@@ -74,7 +79,7 @@ full: [0, 1500], 352/352=100.00 examples.
 
 Reproduce the evaluation on the `test` set:
 ```
-python src/evaluate.py --config config.yml --split test --model_path results/best_checkpoint.pth
+uv run python src/evaluate.py --config config.yml --split test --model_path results/best_checkpoint.pth
 ```
 The result is:
 ```
@@ -99,7 +104,7 @@ full: [0, 1500], 1347/1347=100.00 examples.
 ## Preparation for submission.jsonl
 Run the following command to create submission file. (Evaluation data for the submission will be publicly available on June 1, and the script will work after that.)
 ```
-python src/create_submission.py --config config.yml --model_path results/best_checkpoint.pth
+uv run python src/create_submission.py --config config.yml --model_path results/best_checkpoint.pth
 ```
 You can get `private_submission.jsonl` file under `results` directory. For details, please read [this README.md](src/standalone_eval/README.md)
 

@@ -1,6 +1,8 @@
 # our project
 features
 my-project/
+results/
+results_pretraining/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
