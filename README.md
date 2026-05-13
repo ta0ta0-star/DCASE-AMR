@@ -44,6 +44,8 @@ These feature files are also available in HuggingFace.
 
 
 ## Training and evaluation
+
+### Standard training (logs saved as text files)
 0. Train a model
 ```
 uv run python src/train.py --config config.yml  
@@ -51,11 +53,57 @@ uv run python src/train.py --config config.yml
 - `config.yml` is for CASTELLA. If you train models on Clotho-Moment, use `config_pretraining.yml`
 - If you use pre-trained model weights, use `--resume ./**/{checkpoint}.pth`
 
+### Training with MLflow (recommended for experiment tracking)
+For better experiment tracking and visualization, use the MLflow-integrated version:
 
-1. Evaluation
-Reproduce the evaluation on the `val` set.
+```
+uv run python src/train_with_mlflow.py --config config.yml --exp_name "exp_001_baseline"
+```
+
+This will:
+- 📊 Record training/validation metrics at each epoch
+- 🔍 Automatically capture git commit and branch info
+- 💾 Save checkpoints as artifacts
+- 🎯 Log all hyperparameters for reproducibility
+
+#### View training progress in MLflow UI
+In another terminal:
+```
+uv run mlflow ui --host 127.0.0.1 --port 5000
+```
+Then open `http://127.0.0.1:5000` in your browser to see:
+- 📈 Training/validation loss curves
+- 📊 Metric evolution across epochs
+- 🏆 Best model detection
+- 💾 Artifact tracking
+
+### Evaluation
+
+1. Standard evaluation
 ```
 uv run python src/evaluate.py --config config.yml --model_path results/best_checkpoint.pth
+```
+
+2. Evaluation with MLflow tracking
+```
+uv run python src/evaluate_with_mlflow.py --config config.yml --model_path results/best_checkpoint.pth --split val --exp_name "eval_baseline"
+```
+
+#### Compare multiple experiments
+After running multiple training/evaluation runs with MLflow, open the UI to compare:
+```
+uv run mlflow ui --host 127.0.0.1 --port 5000
+```
+
+Example workflow:
+```bash
+# Run multiple experiments
+uv run python src/train_with_mlflow.py --config config.yml --exp_name "exp_001_baseline"
+uv run python src/train_with_mlflow.py --config config.yml --exp_name "exp_002_attention_v2"
+uv run python src/train_with_mlflow.py --config config.yml --exp_name "exp_003_loss_focal"
+
+# Compare all experiments in UI
+uv run mlflow ui --host 127.0.0.1 --port 5000
 ```
 The result is:
 ```
