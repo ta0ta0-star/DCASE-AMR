@@ -166,9 +166,9 @@ def train(
                 save_checkpoint(model, optimizer, lr_scheduler, epoch_i, opt)
                 logger.info("The checkpoint file has been updated.")
                 
-                # MLflow: Log best checkpoint and metrics
+                # MLflow: Log best checkpoint and metrics (sanitize metric names)
                 mlflow.log_metric("best_epoch", epoch_i, step=epoch_i)
-                mlflow.log_metric("best_score_R1@0.7", stop_score, step=epoch_i)
+                mlflow.log_metric("best_score_R1_at_0.7", stop_score, step=epoch_i)
                 
                 # Log checkpoint as artifact
                 for file_path in latest_file_paths:
