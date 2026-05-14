@@ -139,7 +139,7 @@ class StartEndDataset(Dataset):
             neg_clip_indices = pos_clip_indices
 
         score_array = np.zeros(ctx_l)
-        score_array[gt_st:gt_ed+1] = 1
+        score_array[gt_st:gt_ed+1] = 12
 
         return pos_clip_indices, neg_clip_indices, score_array
 
