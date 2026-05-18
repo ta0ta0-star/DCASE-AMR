@@ -173,7 +173,9 @@ class SetCriterion(nn.Module):
         losses, 
         span_loss_type,
         max_a_l,
-        saliency_margin=1
+        saliency_margin=1,
+        focal_gamma=2.0,
+        focal_alpha=None
     ):
         """ Create the criterion.
         Parameters:
@@ -192,6 +194,8 @@ class SetCriterion(nn.Module):
         self.span_loss_type = span_loss_type
         self.max_a_l = max_a_l
         self.saliency_margin = saliency_margin
+        self.focal_gamma = focal_gamma
+        self.focal_alpha = focal_alpha
 
         # foreground and background classification
         self.foreground_label = 0
@@ -238,8 +242,21 @@ class SetCriterion(nn.Module):
                                     dtype=torch.int64, device=src_logits.device)  # (batch_size, #queries)
         target_classes[idx] = self.foreground_label
 
-        loss_ce = F.cross_entropy(src_logits.transpose(1, 2), target_classes, self.empty_weight, reduction="none")
-        losses = {'loss_label': loss_ce.mean()}
+        # Focal Loss implementation replacing cross-entropy
+        # src_logits: (batch_size, #queries, #classes)
+        gamma = getattr(self, 'focal_gamma', 2.0)
+        # get log probabilities
+        log_prob = F.log_softmax(src_logits, dim=-1)
+        prob = log_prob.exp()
+        # gather log-probability and probability of the target class
+        target = target_classes
+        log_pt = log_prob.gather(-1, target.unsqueeze(-1)).squeeze(-1)
+        pt = log_pt.exp()
+        # class weighting (uses the registered empty_weight buffer)
+        weight = self.empty_weight[target]
+        # focal loss per element
+        loss_focal = - weight * ((1. - pt) ** gamma) * log_pt
+        losses = {'loss_label': loss_focal.mean()}
 
         if log:
             # TODO this should probably be a separate loss, not hacked in this one here
