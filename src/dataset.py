@@ -138,22 +138,22 @@ class StartEndDataset(Dataset):
         except:
             neg_clip_indices = pos_clip_indices
 
-        #score_array = np.zeros(ctx_l)
-        #score_array[gt_st:gt_ed+1] = 12
+        score_array = np.zeros(ctx_l)
+        score_array[gt_st:gt_ed+1] = 12
 
-        score_array = np.zeros(ctx_l, dtype=np.float32)
+        #score_array = np.zeros(ctx_l, dtype=np.float32)
 
-        center = int(round((gt_st + gt_ed) / 2.0))
-        max_dist = max(center - gt_st, gt_ed - center)
+        #center = int(round((gt_st + gt_ed) / 2.0))
+        #max_dist = max(center - gt_st, gt_ed - center)
 
-        if max_dist == 0:
+        #if max_dist == 0:
         # GTが1クリップのみ
-            score_array[center] = 11
-        else:
-            for i in range(gt_st, gt_ed + 1):
-                dist = abs(i - center)
-                rank = (1.0 - dist / max_dist) * 11
-                score_array[i] = max(0, min(11, round(rank)))
+        #    score_array[center] = 11
+        #else:
+        #    for i in range(gt_st, gt_ed + 1):
+        #        dist = abs(i - center)
+        #        rank = (1.0 - dist / max_dist) * 11
+        #        score_array[i] = max(0, min(11, round(rank)))
         
         return pos_clip_indices, neg_clip_indices, score_array
 
