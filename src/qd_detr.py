@@ -174,7 +174,7 @@ class SetCriterion(nn.Module):
         span_loss_type,
         max_a_l,
         saliency_margin=1,
-        focal_gamma=2.0,
+        focal_gamma=None,
         focal_alpha=None
     ):
         """ Create the criterion.
@@ -242,21 +242,27 @@ class SetCriterion(nn.Module):
                                     dtype=torch.int64, device=src_logits.device)  # (batch_size, #queries)
         target_classes[idx] = self.foreground_label
 
-        # Focal Loss implementation replacing cross-entropy
-        # src_logits: (batch_size, #queries, #classes)
-        gamma = getattr(self, 'focal_gamma', 2.0)
-        # get log probabilities
-        log_prob = F.log_softmax(src_logits, dim=-1)
-        prob = log_prob.exp()
-        # gather log-probability and probability of the target class
-        target = target_classes
-        log_pt = log_prob.gather(-1, target.unsqueeze(-1)).squeeze(-1)
-        pt = log_pt.exp()
-        # class weighting (uses the registered empty_weight buffer)
-        weight = self.empty_weight[target]
-        # focal loss per element
-        loss_focal = - weight * ((1. - pt) ** gamma) * log_pt
-        losses = {'loss_label': loss_focal.mean()}
+        # If focal_gamma is None, use standard cross-entropy with class weights
+        if getattr(self, 'focal_gamma', None) is None:
+            # flatten predictions and targets for cross_entropy
+            num_classes = src_logits.shape[-1]
+            src_logits_flat = src_logits.view(-1, num_classes)
+            target_flat = target_classes.view(-1)
+            losses = {'loss_label': F.cross_entropy(src_logits_flat, target_flat, weight=self.empty_weight)}
+        else:
+            # Focal Loss implementation
+            gamma = self.focal_gamma
+            # get log probabilities
+            log_prob = F.log_softmax(src_logits, dim=-1)
+            # gather log-probability and probability of the target class
+            target = target_classes
+            log_pt = log_prob.gather(-1, target.unsqueeze(-1)).squeeze(-1)
+            pt = log_pt.exp()
+            # class weighting (uses the registered empty_weight buffer)
+            weight = self.empty_weight[target]
+            # focal loss per element
+            loss_focal = - weight * ((1. - pt) ** gamma) * log_pt
+            losses = {'loss_label': loss_focal.mean()}
 
         if log:
             # TODO this should probably be a separate loss, not hacked in this one here
@@ -479,6 +485,8 @@ def build_model(args):
         span_loss_type=args.span_loss_type, 
         max_a_l=args.max_a_l,
         saliency_margin=args.saliency_margin,
+        focal_gamma=getattr(args, 'focal_gamma', None),
+        focal_alpha=getattr(args, 'focal_alpha', None),
     )
     criterion.to(device)
     return model, criterion
