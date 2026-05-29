@@ -212,13 +212,16 @@ def main(opt, resume=None, exp_name=None):
             mlflow.log_param("ema_decay", opt.ema_decay)
 
         # dataset & data loader
+        train_q_feat_dir = getattr(opt, "t_para_feat_dir", None) or opt.t_feat_dir
+        train_q_feat_sampling = "random" if getattr(opt, "t_para_feat_dir", None) else "single"
         dataset_config = EasyDict(
             data_path=opt.train_path,
             ctx_mode=opt.ctx_mode,
             a_feat_dir=opt.a_feat_dir,
-            q_feat_dir=opt.t_feat_dir,
+            q_feat_dir=train_q_feat_dir,
             q_feat_type="last_hidden_state",
             a_feat_type=opt.a_feat_type,
+            q_feat_sampling=train_q_feat_sampling,
             max_q_l=opt.max_q_l,
             max_a_l=opt.max_a_l,
             clip_len=opt.clip_length,
@@ -230,6 +233,8 @@ def main(opt, resume=None, exp_name=None):
         train_dataset = StartEndDataset(**dataset_config)
         copied_eval_config = copy.deepcopy(dataset_config)
         copied_eval_config.data_path = opt.val_path
+        copied_eval_config.q_feat_dir = opt.t_feat_dir
+        copied_eval_config.q_feat_sampling = "single"
         eval_dataset = StartEndDataset(**copied_eval_config)
 
         # prepare model

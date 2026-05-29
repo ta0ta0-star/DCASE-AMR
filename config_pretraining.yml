@@ -60,6 +60,7 @@ max_a_l: 300
 ctx_mode: audio_tef
 a_feat_dir: features/clotho-moment/clap
 t_feat_dir: features/clotho-moment/clap_text
+t_para_feat_dir: features/clotho-moment/clap_text_paraphrase
 a_sub_feat_dir: private/feature/clap
 t_sub_feat_dir: private/feature/clap_text
 a_feat_type: clap

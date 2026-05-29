@@ -1,4 +1,5 @@
 import math
+import re
 import torch
 from torch.utils.data import Dataset
 import numpy as np
@@ -34,6 +35,7 @@ class StartEndDataset(Dataset):
         q_feat_dir,
         q_feat_type="last_hidden_state",
         a_feat_type="pann",
+        q_feat_sampling="single",
         max_q_l=32,
         max_a_l=75,
         ctx_mode="video",
@@ -47,6 +49,7 @@ class StartEndDataset(Dataset):
         self.q_feat_dir = q_feat_dir
         self.q_feat_type = q_feat_type
         self.a_feat_type = a_feat_type
+        self.q_feat_sampling = q_feat_sampling
         
         if max_a_l == -1:
             max_a_l = 100000000
@@ -309,8 +312,29 @@ class StartEndDataset(Dataset):
 
     def _get_query_feat_by_qid(self, qid):
         q_feat_path = join(self.q_feat_dir, f"qid{qid}.npz")
-        q_feat = np.load(q_feat_path)['last_hidden_state']
-        return q_feat
+        with np.load(q_feat_path) as q_feat_npz:
+            if "last_hidden_state" in q_feat_npz.files:
+                q_feat = q_feat_npz["last_hidden_state"]
+                if q_feat.ndim == 3:
+                    return self._select_query_variant(q_feat)
+                return q_feat
+
+            caption_keys = [name for name in q_feat_npz.files if re.fullmatch(r"caption_\d+", name)]
+            if not caption_keys:
+                raise KeyError(f"No supported query feature keys found in {q_feat_path}: {q_feat_npz.files}")
+
+            caption_keys = sorted(caption_keys, key=lambda name: int(name.split("_")[1]))
+            return q_feat_npz[self._select_caption_key(caption_keys)]
+
+    def _select_query_variant(self, q_feat):
+        if self.q_feat_sampling == "random" and q_feat.shape[0] > 1:
+            return q_feat[random.randrange(q_feat.shape[0])]
+        return q_feat[0]
+
+    def _select_caption_key(self, caption_keys):
+        if self.q_feat_sampling == "random" and len(caption_keys) > 1:
+            return random.choice(caption_keys)
+        return caption_keys[0]
 
     def _get_audio_feat_by_vid(self, vid):
         _feat_path = join(self.a_feat_dir, f"{vid}.npz")

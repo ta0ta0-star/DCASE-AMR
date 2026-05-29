@@ -42,6 +42,11 @@ These feature files are also available in HuggingFace.
 - [CASTELLA dataset](https://huggingface.co/datasets/lighthouse-emnlp2024/CASTELLA_CLAP_features)
 - [Clotho-Moment dataset](https://huggingface.co/datasets/lighthouse-emnlp2024/Clotho-Moment_CLAP_features)
 
+If you want to train on Clotho-Moment with the five paraphrases per query, prepare a separate text-feature directory such as `features/clotho-moment/clap_text_paraphrase`.
+The repository provides two helper scripts:
+- `src/analysis/export_clotho_caption_manifest.py` to export the five captions per qid from the aligned JSONL and CSV
+- `src/analysis/pack_clotho_caption_features.py` to pack per-caption NPZ files into one `qid*.npz` file with `caption_1` to `caption_5`
+
 
 ## Training and evaluation
 
@@ -51,6 +56,7 @@ These feature files are also available in HuggingFace.
 uv run python src/train.py --config config.yml  
 ```
 - `config.yml` is for CASTELLA. If you train models on Clotho-Moment, use `config_pretraining.yml`
+- For Clotho-Moment pretraining with paraphrase sampling, set `t_para_feat_dir` in `config_pretraining.yml` to the packed paraphrase feature directory
 - If you use pre-trained model weights, use `--resume ./**/{checkpoint}.pth`
 
 ### Training with MLflow (recommended for experiment tracking)
