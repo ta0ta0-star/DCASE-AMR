@@ -15,8 +15,10 @@ Each output file contains a single `last_hidden_state` array with shape
 import argparse
 import json
 import logging
+import os
 import sys
 import traceback
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -95,7 +97,15 @@ def main():
             try:
                 last_hidden_state = encode_caption(clap, caption)
                 output_path = output_dir / f"qid{qid}_caption{int(caption_index)}.npz"
-                np.savez_compressed(output_path, last_hidden_state=last_hidden_state)
+                with tempfile.NamedTemporaryFile(dir=output_dir, suffix=".npz.tmp", delete=False) as tmp_file:
+                    tmp_path = Path(tmp_file.name)
+                try:
+                    with tmp_path.open("wb") as fh:
+                        np.savez_compressed(fh, last_hidden_state=last_hidden_state)
+                    os.replace(tmp_path, output_path)
+                finally:
+                    if tmp_path.exists():
+                        tmp_path.unlink()
                 written += 1
             except Exception:
                 logging.error("Encoding failed for qid=%s caption_index=%s", qid, caption_index)

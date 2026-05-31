@@ -15,20 +15,28 @@ training time without changing the rest of the pipeline.
 
 import argparse
 import re
+import zipfile
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+try:
+    from tqdm import tqdm
+except Exception:
+    tqdm = None
 
 
 INPUT_PATTERN = re.compile(r"^qid(?P<qid>.+?)_caption(?P<caption_index>\d+)\.npz$")
 
 
 def load_feature(path, key):
-    with np.load(path) as data:
-        if key not in data.files:
-            raise KeyError(f"Missing key {key!r} in {path}")
-        return data[key]
+    try:
+        with np.load(path) as data:
+            if key not in data.files:
+                raise KeyError(f"Missing key {key!r} in {path}")
+            return data[key]
+    except zipfile.BadZipFile as exc:
+        raise zipfile.BadZipFile(f"Corrupted NPZ file: {path}") from exc
 
 
 def main():
@@ -37,6 +45,8 @@ def main():
     parser.add_argument("--output-dir", required=True, help="Directory to write packed qid*.npz files")
     parser.add_argument("--input-key", default="last_hidden_state", help="Feature key inside each input NPZ")
     parser.add_argument("--strict", action="store_true", help="Fail if a qid does not have five captions")
+    parser.add_argument("--progress", action="store_true", help="Show progress bar (requires tqdm)")
+    parser.add_argument("--print-every", type=int, default=1000, help="Print progress every N qids when progress bar is off")
     args = parser.parse_args()
 
     input_dir = Path(args.input_dir)
@@ -56,7 +66,13 @@ def main():
         raise FileNotFoundError(f"No qid*_caption*.npz files found under {input_dir}")
 
     packed_count = 0
-    for qid, caption_map in sorted(grouped_paths.items()):
+    items = sorted(grouped_paths.items())
+    show_progress = args.progress and (tqdm is not None)
+    iterator = items
+    if show_progress:
+        iterator = tqdm(items, total=len(items), desc="packing qids", unit="qid")
+
+    for idx, (qid, caption_map) in enumerate(iterator, start=1):
         if args.strict and len(caption_map) != 5:
             raise ValueError(f"qid{qid} has {len(caption_map)} captions, expected 5")
 
@@ -68,6 +84,9 @@ def main():
         output_path = output_dir / f"qid{qid}.npz"
         np.savez_compressed(output_path, **packed)
         packed_count += 1
+
+        if not show_progress and (idx % args.print_every == 0):
+            print(f"Packed {packed_count}/{len(items)} qids", flush=True)
 
     print(f"Packed {packed_count} qid feature files into {output_dir}")
 
