@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""Encode Clotho-Moment caption manifest entries with msclap.
+"""Encode Clotho-Moment caption manifest entries with M2D-CLAP.
 
 This reads the one-caption-per-line manifest produced by
 `export_clotho_caption_manifest.py`, extracts token-level text features from
@@ -15,23 +15,50 @@ Each output file contains a single `last_hidden_state` array with shape
 import argparse
 import json
 import logging
+import os
 import sys
 import traceback
+import tempfile
 from pathlib import Path
 
 import numpy as np
-from msclap import CLAP
+import torch
 try:
     from tqdm import tqdm
 except Exception:
     tqdm = None
 
 
-def encode_caption(clap, caption):
-    tokenized = clap.preprocess_text([caption])
-    hidden_states = clap.clap.caption_encoder.base(**tokenized)[0]
-    seq_len = int(tokenized["attention_mask"].sum().item())
-    last_hidden_state = hidden_states[0, :seq_len, :].detach().cpu().numpy().astype(np.float32, copy=False)
+def load_m2d_text_encoder(weight_path, m2d_root, device):
+    sys.path.insert(0, str(Path(m2d_root).resolve()))
+    from m2d.runtime_audio import RuntimeM2D
+
+    model = RuntimeM2D(weight_file=str(Path(weight_path).resolve()))
+    model = model.to(device)
+    model.eval()
+    model.get_clap_text_encoder()
+
+    text_encoder = model.text_encoder
+    tokenizer = text_encoder.tokenizer
+    bert_model = text_encoder.text_encoder
+    return tokenizer, bert_model
+
+
+def encode_caption(tokenizer, bert_model, caption, device):
+    inputs = tokenizer(
+        caption,
+        return_tensors="pt",
+        padding=False,
+        truncation=True,
+        max_length=512,
+    )
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
+    outputs = bert_model(**inputs)
+    hidden_state = outputs.last_hidden_state
+
+    seq_len = int(inputs["attention_mask"].sum().item())
+    last_hidden_state = hidden_state[0, :seq_len].detach().cpu().numpy().astype(np.float32, copy=False)
     return last_hidden_state
 
 
@@ -39,8 +66,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--manifest", required=True, help="Input JSONL manifest path")
     parser.add_argument("--output-dir", required=True, help="Directory for qid*_caption*.npz files")
-    parser.add_argument("--version", default="2023", help="msclap version to load")
-    parser.add_argument("--use-cuda", action="store_true", help="Run msclap on CUDA")
+    parser.add_argument("--weight", required=True, type=Path, help="Path to the M2D-CLAP checkpoint")
+    parser.add_argument("--m2d-root", type=Path, default=Path("/home/y255618g/m2d"), help="Path to the local m2d repository root")
+    parser.add_argument("--device", default="auto", help="Device to run on: auto, cpu, cuda, cuda:0, ...")
     parser.add_argument("--limit", type=int, default=0, help="Optional maximum number of manifest rows to encode")
     parser.add_argument("--progress", action="store_true", help="Show progress bar (requires tqdm)")
     parser.add_argument("--print-every", type=int, default=1000, help="Print progress every N records")
@@ -50,8 +78,11 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clap = CLAP(version=args.version, use_cuda=args.use_cuda)
+    device = args.device
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
+    tokenizer, bert_model = load_m2d_text_encoder(args.weight, args.m2d_root, device)
     total = 0
     written = 0
 
@@ -94,8 +125,16 @@ def main():
 
             try:
                 output_path = output_dir / f"qid{qid}_caption{int(caption_index)}.npz"
-                last_hidden_state = encode_caption(clap, caption)
-                np.savez_compressed(output_path, last_hidden_state=last_hidden_state)
+                feat = encode_caption(tokenizer, bert_model, caption, device)
+                with tempfile.NamedTemporaryFile(dir=output_dir, suffix=".npz.tmp", delete=False) as tmp_file:
+                    tmp_path = Path(tmp_file.name)
+                try:
+                    with tmp_path.open("wb") as fh:
+                        np.savez_compressed(fh, last_hidden_state=feat)
+                    os.replace(tmp_path, output_path)
+                finally:
+                    if tmp_path.exists():
+                        tmp_path.unlink()
                 written += 1
             except Exception:
                 logging.error("Encoding failed for qid=%s caption_index=%s", qid, caption_index)

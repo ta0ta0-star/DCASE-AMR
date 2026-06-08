@@ -1,8 +1,8 @@
-# `encode_clotho_caption_features_with_msclap.py` の実行方法
+# `encode_clotho_caption_features_with_m2dclap.py` と `encode_clotho_caption_features_with_msclap.py` の実行方法
 
-このメモは、`src/analysis/encode_clotho_caption_features_with_msclap.py` を使って Clotho caption のテキスト特徴量を NPZ に出力する手順をまとめたものです。
+このメモは、M2D-CLAP 版と msclap 版を分けて残す前提で、Clotho caption のテキスト特徴量を NPZ に出力する手順をまとめたものです。
 
-このスクリプトは、`add_data/clotho_caption_manifest_train.jsonl` のような 1 行 1 caption の manifest を読み、M2D-CLAP の BERT text encoder で token-level の `last_hidden_state` を保存します。出力される NPZ は `qid{qid}_caption{caption_index}.npz` という名前で、各ファイルには `last_hidden_state` のみが入ります。
+`encode_clotho_caption_features_with_m2dclap.py` は、`add_data/clotho_caption_manifest_train.jsonl` のような 1 行 1 caption の manifest を読み、M2D-CLAP の BERT text encoder で token-level の `last_hidden_state` を保存します。`encode_clotho_caption_features_with_msclap.py` は、元の msclap 実装のまま残します。
 
 ## 前提
 
@@ -15,7 +15,7 @@
 CUDA の特定 GPU を使いたい場合は `--device cuda:1` のように指定します。
 
 ```bash
-/home/y255618g/m2d/.venv/bin/python /home/y255618g/DCASE-AMR/src/analysis/encode_clotho_caption_features_with_msclap.py \
+/home/y255618g/m2d/.venv/bin/python /home/y255618g/DCASE-AMR/src/analysis/encode_clotho_caption_features_with_m2dclap.py \
   --manifest /home/y255618g/DCASE-AMR/add_data/clotho_caption_manifest_train.jsonl \
   --output-dir /path/to/output_dir \
   --weight /data/y255618g/m2d/m2d_clap_vit_base-80x1001p16x16p16kpBpTI-2025/checkpoint-30.pth \
@@ -31,7 +31,7 @@ CUDA の特定 GPU を使いたい場合は `--device cuda:1` のように指定
 動作確認だけしたい場合は `--limit 2` を付けます。
 
 ```bash
-/home/y255618g/m2d/.venv/bin/python /home/y255618g/DCASE-AMR/src/analysis/encode_clotho_caption_features_with_msclap.py \
+/home/y255618g/m2d/.venv/bin/python /home/y255618g/DCASE-AMR/src/analysis/encode_clotho_caption_features_with_m2dclap.py \
   --manifest /tmp/sample_manifest.jsonl \
   --output-dir /tmp/clotho_feats_test \
   --weight /data/y255618g/m2d/m2d_clap_vit_base-80x1001p16x16p16kpBpTI-2025/checkpoint-30.pth \
@@ -63,4 +63,5 @@ PY
 
 - 出力は caption ごとの token-level feature なので、caption 長によって `shape[0]` は変わる
 - 保存キーは `last_hidden_state` 固定
-- 既存の `msclap` 版と違い、現行実装は M2D の tokenizer と BERT encoder を直接使う
+- `encode_clotho_caption_features_with_m2dclap.py` は M2D の tokenizer と BERT encoder を直接使う
+- `encode_clotho_caption_features_with_msclap.py` は msclap 版として残す
