@@ -13,16 +13,19 @@
 ## 本番実行
 
 CUDA の特定 GPU を使いたい場合は `--device cuda:1` のように指定します。
+このコマンドは絶対パスだけを使っているので、どのディレクトリにいても実行できます。
 
 ```bash
 /home/y255618g/m2d/.venv/bin/python /home/y255618g/DCASE-AMR/src/analysis/encode_clotho_caption_features_with_m2dclap.py \
   --manifest /home/y255618g/DCASE-AMR/add_data/clotho_caption_manifest_train.jsonl \
-  --output-dir /path/to/output_dir \
+  --output-dir /data/y255618g/dcase2026_task6/m2d_caption_train \
   --weight /data/y255618g/m2d/m2d_clap_vit_base-80x1001p16x16p16kpBpTI-2025/checkpoint-30.pth \
   --m2d-root /home/y255618g/m2d \
   --device cuda:1 \
   --progress
 ```
+
+出力先の `/data/y255618g/dcase2026_task6/m2d_caption_train` はスクリプト側で自動作成されます。
 
 `--limit` は付けないと全件処理になります。`--progress` を付けると tqdm が使える環境では進捗バーを表示します。
 
